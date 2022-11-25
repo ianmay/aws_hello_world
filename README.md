@@ -1,2 +1,166 @@
 # aws_hello_world
-small aws example using terraform
+
+This is a small aws hello world example using terraform
+
+
+# The Journey! 
+```
+The Goal
+Using infrastructure as code, set up a hello world web server in AWS/Azure, and write a script for the server health check.
+
+* Must achieve:
+
+- You will need an AWS/Azure account for this task. You are expected to use free-tier only.
+
+- You can use any infrastructure as code tool you like.
+
+- The code must be able to run anywhere.
+
+- Provide a script to run health checks periodically and externally.
+
+- Provide documents of the code.
+
+- Automate as much as possible. 
+
+- The code must be stored in a source control tool of your choice and a link must be provided 
+```
+
+## Getting Started ~ Setup
+
+Time to get set up and install all the relevant tools I will need to complete the work. I'm using a windows based machineand am a fan of Chocolatey so that's  what I'll use to install the tools. A list of links to the websites is also included below in case you prefer to get the installers directly from there. 
+
+### from powershell :
+```PowerShell
+# Install awscli and terraform. Needed to access and provision resources in AWS
+choco install awscli
+choco install terraform
+
+# Install python - I want to try and create a simple lambda function and will use python
+choco install python3
+
+# Install sam and docker. AWS Serverless Application Model or SAM allows us to test functions locally which will help save on the cost and time of deploying. Docker is a requirement for aws sam. While it worked fine for me installing Docker with Chocolatey, you might be saver downloading the MSI and installing it directly from their website.  
+choco install awssamcli
+choco install docker
+
+# Post install let's refresh session environment (allows any new changes to path, etc from the installs to be picked up inside this powershell session)
+refreshenv
+
+# Post install let's check the versions (mostly to make sure we can execute the tools before we start)
+aws.exe --version
+terraform --version
+python.exe --version
+sam --version
+docker --version
+
+```
+### via msi's:
+Tools can be downloaded and installed from msi's directly from the manufactures website 
+* AwsCli : https://aws.amazon.com/cli/
+* Terraform : https://developer.hashicorp.com/terraform/downloads
+* Python : https://www.python.org/downloads/
+* AWS Serverless Application Model : https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html
+* Docker : https://www.docker.com
+
+
+## Getting Started ~ Set up AWS account information. 
+After creating a free account in AWS, adding multifactor etc I used the AWS web console to create a new user and group for this example. Then created an access key for the user. You'll need to take a copy of the details. 
+
+You can run the awscli tool to set up credentials allowing you to work with aws. You just follow the simple prompts. I choose `ap-southeast-2` for the region and added my access key and access secret from the new user I created in the web console. It's worth noting that awscli stores these details in plain text on disk after setup. 
+
+```
+# set up aws with account info
+aws configure
+
+# look ma! plain text credintials ! 
+cat ~\.aws\config
+cat ~\.aws\credentials 
+```
+
+## Getting Started ~ Set up a working directory. 
+Next is to create a directory to hold all the work. 
+```
+# create a folder to hold the project
+mkdir aws_hello_world
+cd .\aws_hello_world\
+```
+## Bootstraping a simple python hello world function with AWS Serverless Application Model
+The "AWS Serverless Application Model" or SAM is pretty neat. It can be used to provide boiler plate code examples, and better, allow you to test them locally before pushing it up into aws. 
+
+To set up a boiler plate python app you just need to run `sam init`
+
+![image description](doc/assets/sam-init.png)
+
+I did run into a problem where it failed cloning at first. Turned out that as I was on Windows I needed to set `LongPathsEnabled` in the registry for windows first. You can check it via regedit under `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem` or in powershell, example below. After that re-running sam init worked fine.
+
+```Powershell
+# check LongPathsEnabled (should be 1 for enabled)
+Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled"
+
+# you can set it if needed
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1
+```
+After this, I had a boilerplate py app that we can run up locally. You just need to drop into the new `hello_world` folder and run SAM with start-api. After that you can test it quickly in a browser by going to `http://127.0.0.1:3000/hello`
+
+```Powershell
+cd .\hello_world\ 
+sam local start-api
+```
+
+![image description](doc/assets/hello_world_1.png)
+Another cool thing was you can edit the code with SAM running and then just refresh to see the changes! I opened up `.\hello_world\hello_world\app.py` and changed the line of the message from "hello world" to "hello mars"
+
+```python
+# From .\hello_world\hello_world\app.py
+# ...
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "hello mars",
+            # "location": ip.text.replace("\n", "")
+        }),
+    }
+# ...
+```
+
+![image description](doc/assets/hello_world_2.png)
+
+If we were writing something more complicated I think that's pretty cool that we can use sam to make sure its going to work first before spending time and cost on a deployment to aws!
+
+## Terraform Mars!
+
+Now we have something simple, I really wanted to try out creating a lambda in AWS. The first thing I did was create a new tf file. Back in the root folder I created a `main.tf`. 
+
+Next is to let terraform know we want to work with aws and so we add in the provider. We can also specify a version we want to enforce for terraform. Lets do that : 
+
+```terraform
+# ./versions.tf
+terraform {
+  required_version = ">= 0.13.1"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 3.19"
+    }
+  }
+}
+```
+
+
+
+
+
+
+
+
+## Refrences and helpful links have been
+
+* https://advancedweb.hu/how-to-define-lambda-code-with-terraform/
+* https://hevodata.com/learn/terraform-lambda/
+* https://registry.terraform.io/modules/mineiros-io/lambda-function/aws/latest/examples/python-function
+* https://developer.hashicorp.com/terraform/language/values/variables
+* https://www.middlewareinventory.com/blog/aws-lambda-terraform/
+* https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html
+
+* https://www.maxivanov.io/deploy-aws-lambda-to-vpc-with-terraform/
+* https://www.site24x7.com
