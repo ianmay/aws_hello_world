@@ -211,6 +211,62 @@ Success! But I think we can do better. In a real-world setting, I'd imagine that
 * split out the code into separate files. This will help make it easier to maintain. 
 * Let's add variables to abstract away all those hard-coded references making the code a little more reusable. 
 
+I start with removing the versions from the top of a file into one called `versions.tf`
+
+```terraform
+terraform {
+  required_version = ">= 0.13.1"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 3.19"
+    }
+  }
+}
+```
+
+After that, I created a new file to hold all the variables called `variables.tf`. The first obvious thing to include is the region. I also read that we can include objects as variables. So I thought it would be nice to try this out. I've created one to hold details from our hello world app.
+
+```terraform
+# basic variable!
+variable "aws_region" {
+ type        = string
+ default     = "ap-southeast-2"
+}
+
+# you can create objects too! 
+variable "hello_world_app" {
+ type = object({
+    name       = string
+    local_path = string
+    handler    = string
+    runtime    = string
+  })
+  default = {
+    name       = "hello_world"
+    local_path = "./hello_world/hello_world/app.py"
+    handler    = "main.lambda_handler"
+    runtime    = "python3.9"
+  }
+}
+ 
+```
+With these in place we can rework the `main.tf` and remove all the hard coded refrences. Heres the diff: 
+
+![image description](doc/assets/terrafrom_diff_1.png)
+
+Again. Post changes, we run a `terraform plan` to ensure I haven't introduced any errors and that it's still ok to create the resources. This worked. And for fun, I ran `terraform apply`, logged into AWS, and confirmed we could see the Lambda!
+
+![image description](doc/assets/lambda_1.png)
+
+## Billing 
+Before I get carried away. Let's set up a quick budget. After all, it's my card on the line :P
+
+## API Gateway
+So far - all great, but it's not publicly accessible yet. Need to fix that. 
+
+```terraform
 
 ## Refrences and helpful links have been
 

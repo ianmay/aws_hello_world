@@ -1,16 +1,6 @@
-terraform {
-  required_version = ">= 0.13.1"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 3.19"
-    }
-  }
-}
-
 provider "aws" {
-  region = "ap-southeast-2"
+  # variables will be stored in a seprate file called variables.tf
+  region = var.aws_region
   # this makes things faster!
   skip_get_ec2_platforms      = true
   skip_metadata_api_check     = true
@@ -40,15 +30,15 @@ resource "aws_iam_role" "hello_world_lambda_role" {
 # create an archive of the hello world code to deploy
 data "archive_file" "hello_world_lambda_archive" {
   type        = "zip"
-  source_file = "./hello_world/hello_world/app.py"
-  output_path = "hello_world.zip"
+  source_file = "${var.hello_world_app.local_path}"
+  output_path = "${var.hello_world_app.name}.zip"
 }
 
 # create the lambda from the archive file
 resource "aws_lambda_function" "hello_world_lambda" {
-  function_name    = "hello_world"
-  runtime          = "python3.9"
-  handler          = "main.lambda_handler"
+  function_name    = "${var.hello_world_app.name}"
+  runtime          = "${var.hello_world_app.runtime}"
+  handler          = "${var.hello_world_app.handler}"
   filename         = "${data.archive_file.hello_world_lambda_archive.output_path}"
   source_code_hash = "${data.archive_file.hello_world_lambda_archive.output_base64sha256}"
   role      	     = "${aws_iam_role.hello_world_lambda_role.arn}"
