@@ -130,7 +130,7 @@ If we were writing something more complicated I think that's pretty cool that we
 
 Now we have something simple, I really wanted to try out creating a lambda in AWS. The first thing I did was create a new tf file. Back in the root folder I created a `main.tf`. 
 
-Next is to let terraform know we want to work with aws and so we add in the provider. We can also specify a version we want to enforce for terraform. Lets do that : 
+Next is to let terraform know we want to work with AWS and so we add in the provider. We can also specify a version we want to enforce for Terraform. Let's do that : 
 
 ```terraform
 # ./versions.tf
@@ -145,12 +145,71 @@ terraform {
   }
 }
 ```
+On to configuring our provider (AWS). The main thing will be to tell AWS which region to use. For this example, I went with `ap-southeast-2` which is Sydney. There's a few other settings that speed up the calls from Terraform too, so let's include those. 
 
+```terraform
+provider "aws" {
+  region = "ap-southeast-2"
+  # this makes things faster!
+  skip_get_ec2_platforms      = true
+  skip_metadata_api_check     = true
+  skip_region_validation      = true
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+}
+```
 
+Our Lambda will need some roles and permissions. I've seen a few different ways of doing this, mostly just feeding JSON from a string into the IAM role. However, Terraform has an `aws_iam_policy_document` data source which can be defined. I liked the readability of this approach.
 
+```terraform
+# create a policy to be used by the role for our lambda
+data "aws_iam_policy_document" "AWSLambdaTrustPolicy" {
+  statement {
+    actions    = ["sts:AssumeRole"]
+    effect     = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
 
+# create the for the lambda
+resource "aws_iam_role" "hello_world_lambda_role" {
+  name               = "hello_world_lambda_role"
+  assume_role_policy = "${data.aws_iam_policy_document.AWSLambdaTrustPolicy.json}"
+}
+```
 
+We also need to get the python code up into AWS. The preferred approach is a zip file. After that, we can define our Lambda.
 
+```terraform
+# create an archive of the hello world code to deploy
+data "archive_file" "hello_world_lambda_archive" {
+  type        = "zip"
+  source_file = "./hello_world/hello_world/app.py"
+  output_path = "hello_world.zip"
+}
+
+# create the lambda from the archive file
+resource "aws_lambda_function" "hello_world_lambda" {
+  function_name    = "hello_world"
+  runtime          = "python3.9"
+  handler          = "main.lambda_handler"
+  filename         = "${data.archive_file.hello_world_lambda_archive.output_path}"
+  source_code_hash = "${data.archive_file.hello_world_lambda_archive.output_base64sha256}"
+  role      	     = "${aws_iam_role.hello_world_lambda_role.arn}"
+}
+```
+
+This should be everything we need for now. Run `terraform init`. This will set up the providers and versions. Once complete we can run `terraform plan` to see if we have any errors, and if not it will show the changes it wants to make.
+
+![image description](doc/assets/terraform_init.png)
+
+Success! But I think we can do better. In a real-world setting, I'd imagine that the code base is likely to grow and become more complex. So to improve the code - let's:
+
+* split out the code into separate files. This will help make it easier to maintain. 
+* Let's add variables to abstract away all those hard-coded references making the code a little more reusable. 
 
 
 ## Refrences and helpful links have been
