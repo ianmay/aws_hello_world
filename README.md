@@ -261,7 +261,33 @@ Again. Post changes, we run a `terraform plan` to ensure I haven't introduced an
 ![image description](doc/assets/lambda_1.png)
 
 ## Billing 
-Before I get carried away. Let's set up a quick budget. After all, it's my card on the line :P
+Before I get carried away. Let's set up a quick budget. After all, it's my card on the line :P 
+
+I've created the following file `budget.tf`. In here I'll define a budget and notification. 
+```terrafrom
+resource "aws_budgets_budget" "my-monthly-budget" {
+  name              = "my-monthly-budget"
+  budget_type       = "COST"
+  limit_amount      = "${var.monthly_budget_amount}"
+  limit_unit        = "USD"
+  time_period_start = "2022-11-01_00:00"
+  time_unit         = "MONTHLY"
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
+  }
+}
+```
+and add a variable to `variables.tf` so we can change the cost if needed.
+```terraform
+variable "monthly_budget_amount" {
+ type        = string
+ default     = "10"
+}
+```
 
 ## API Gateway
 So far - all great, but it's not publicly accessible yet. Need to fix that. 

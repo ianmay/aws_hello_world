@@ -4,6 +4,11 @@ variable "aws_region" {
  default     = "ap-southeast-2"
 }
 
+variable "monthly_budget_amount" {
+ type        = string
+ default     = "10"
+}
+
 # you can create objects too! 
 variable "hello_world_app" {
  type = object({
@@ -19,4 +24,3 @@ variable "hello_world_app" {
     runtime    = "python3.9"
   }
 }
- 
