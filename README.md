@@ -83,7 +83,11 @@ Next is to create a directory to hold all the work.
 mkdir aws_hello_world
 cd .\aws_hello_world\
 ```
-## Bootstraping a simple python hello world function with AWS Serverless Application Model
+
+## Step 1 ~ Hello world lambda and api gateway
+Many of my friends have been telling me how cool serverless functions are. And so its been one of the things I really wanted to try out for a while.  
+
+### Bootstraping a simple python hello world function with AWS Serverless Application Model
 The "AWS Serverless Application Model" or SAM is pretty neat. It can be used to provide boiler plate code examples, and better, allow you to test them locally before pushing it up into aws. 
 
 To set up a boiler plate python app you just need to run `sam init`
@@ -126,7 +130,7 @@ Another cool thing was you can edit the code with SAM running and then just refr
 
 If we were writing something more complicated I think that's pretty cool that we can use sam to make sure its going to work first before spending time and cost on a deployment to aws!
 
-## Terraform Mars!
+### Terraform Mars!
 
 Now we have something simple, I really wanted to try out creating a lambda in AWS. The first thing I did was create a new tf file. Back in the root folder I created a `main.tf`. 
 
@@ -260,36 +264,7 @@ Again. Post changes, we run a `terraform plan` to ensure I haven't introduced an
 
 ![image description](doc/assets/lambda_1.png)
 
-## Billing 
-Before I get carried away. Let's set up a quick budget. After all, it's my card on the line :P 
-
-I've created the following file `budget.tf`. In here I'll define a budget and notification. 
-```terrafrom
-resource "aws_budgets_budget" "my-monthly-budget" {
-  name              = "my-monthly-budget"
-  budget_type       = "COST"
-  limit_amount      = "${var.monthly_budget_amount}"
-  limit_unit        = "USD"
-  time_period_start = "2022-11-01_00:00"
-  time_unit         = "MONTHLY"
-
-  notification {
-    comparison_operator        = "GREATER_THAN"
-    threshold                  = 100
-    threshold_type             = "PERCENTAGE"
-    notification_type          = "FORECASTED"
-  }
-}
-```
-and add a variable to `variables.tf` so we can change the cost if needed.
-```terraform
-variable "monthly_budget_amount" {
- type        = string
- default     = "10"
-}
-```
-
-## API Gateway
+#### API Gateway
 So far - all great, but it's not publicly accessible yet. Need to fix that. Starting with creating a gateway api container to hold all other api objects. 
 ```terraform
 resource "aws_api_gateway_rest_api" "LambdaApiGateway" {
@@ -383,7 +358,7 @@ Epic! Lets apply it and see what we get!
 
 Not so epic! 
 
-### Lights are on but no ones home !
+#### Lights are on but no ones home !
 
 After a little troubleshooting and using the aws console to test the gateway. It looks like the permissions in the lambda wasnt set correctly. After poking around a bit, I found that adding the account number id to the arn of the aws_api_gateway_rest_api in the lambdas permissions allowed it to work. Adding the following lines really helped to trouble shoot what was being used (and what wasnt)
 ```terrafrom
@@ -405,30 +380,98 @@ Here, using `terraform plan` we can see the that the account id is missing betwe
 
 ![image description](doc/assets/lambda_3.png)
 
-I really want to understand why this is happening, but for now - building up the arn seems to work. As soon as I have more time I'm going to come back to this. 
+I really want to understand why this is happening, but for now - building up the arn seems to work.  
 
 ```terraform
 ...
 source_arn = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.LambdaApiGateway.id}/*/*/*"
 ```
 
-With this in place, another run and this time it works. 
+As soon as I have more time I'm going to come back to this. But for now, at least its working.
 
 ![image description](doc/assets/lambda_4.png)
 
+## Learning from Bargin Basement Budgets! 
+Before I get carried away. Let's set up a quick budget. After all, it's my card on the line :P 
 
-## Refrences and helpful links have been
+I've created the following file `budget.tf`. In here I'll define a budget and notification. 
 
+I created the following variables.
+
+```terraform
+# variables to hold our budget details
+variable "budget" {
+ type = object({
+    amount     = string
+    email      = list(string)
+    time_span  = string
+  })
+  default = {
+    amount     = "10"
+    email      = ["not@really.real"]
+    time_span  = "MONTHLY"
+  }
+}
+```
+then a new file called `budget.tf` that contained:
+
+```terraform
+resource "aws_budgets_budget" "hello_world_budget" {
+  name              = "hello_world_${var.budget.time_span}-budget"
+  budget_type       = "COST"
+  limit_amount      = var.budget.amount
+  limit_unit        = "USD"
+  time_unit         = var.budget.time_span
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = var.budget.email
+  }
+}
+```
+With this in place, time for another suprise! The account_id problem reared its head again! From the error it looks like the account_id is less than 12 chars. Lol - I bet its empty as was the case for the LambdaApiGatewayDeployment arn
+![image description](doc/assets/budget_1.png)
+
+This was very helpful as now i know its something with my set up more globally rather than just that one bit. Going back to the begining when I declared the provider, I'd taken some code that I saw should speed up interacting with terraform - the culprit? skip_requesting_account_id is false! Doh!
+
+A quick change to this let me use the LambdaApiGatewayDeployment arn again:
+
+```terraform
+provider "aws" {
+...
+  skip_requesting_account_id  = false
+...
+}
+...
+resource "aws_lambda_permission" "LambdaApiGatewayPermission" {
+...
+   source_arn    = "${aws_api_gateway_rest_api.LambdaApiGateway.execution_arn}/*/*/*"
+...
+}
+```
+
+I also now have a Budget! 
+
+### Cleaning up
+Now the Lambda is working, I'd like to move it all into its own file and then move on to other approches for for hello world. To do this I moved the code after declairing the provider into a new file called `hello_world_lamdba.tf`. I choose not to split out the gateway (although that might be a valid approch). The idea here was I wanted, for my own sake to group together all the resources for a singluar objective into thier own files. So as the gateway is currently only serving the lambda, I'll keep them together. After this a quick terraform apply to make sure its all still working. 
+
+
+### Refrences and helpful links have been
+standing on the shoulders of gaints, the following have been very helpful while working on creating the lambda:
+* https://registry.terraform.io/providers/hashicorp/aws/2.34.0/docs/guides/serverless-with-aws-lambda-and-api-gateway
+* https://registry.terraform.io/modules/mineiros-io/lambda-function/aws/latest/examples/python-function
 * https://advancedweb.hu/how-to-define-lambda-code-with-terraform/
 * https://hevodata.com/learn/terraform-lambda/
-* https://registry.terraform.io/modules/mineiros-io/lambda-function/aws/latest/examples/python-function
-
-* https://registry.terraform.io/providers/hashicorp/aws/2.34.0/docs/guides/serverless-with-aws-lambda-and-api-gateway
+* https://www.maxivanov.io/deploy-aws-lambda-to-vpc-with-terraform/
 * https://www.middlewareinventory.com/blog/aws-lambda-terraform/
+* https://levelup.gitconnected.com/deploy-lambda-function-and-api-gateway-using-terraform-d12cdc50dee8
 
+# other refrences that have been helpful
 
 * https://developer.hashicorp.com/terraform/language/values/variables
 * https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html
 
-* https://www.maxivanov.io/deploy-aws-lambda-to-vpc-with-terraform/
+
 * https://www.site24x7.com
