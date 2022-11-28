@@ -90,6 +90,15 @@ resource "aws_api_gateway_integration" "LambdaApiGatewayIntegrationRoot" {
    uri                     = aws_lambda_function.hello_world_lambda.invoke_arn
 }
 
+# allow gateway to invoke the lambda
+resource "aws_lambda_permission" "LambdaApiGatewayPermission" {
+   statement_id  = "AllowLambdaAPIGatewayInvoke"
+   action        = "lambda:InvokeFunction"
+   function_name = aws_lambda_function.hello_world_lambda.function_name
+   principal     = "apigateway.amazonaws.com"
+   source_arn = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.LambdaApiGateway.id}/*/*/*"
+}
+
 # expose the API and config at a URL for testing 
 resource "aws_api_gateway_deployment" "LambdaApiGatewayDeployment" {
    depends_on = [
@@ -100,14 +109,7 @@ resource "aws_api_gateway_deployment" "LambdaApiGatewayDeployment" {
    stage_name  = var.api_deployment_stage_name
 }
 
-# allow gateway to invoke the lambda
-resource "aws_lambda_permission" "LambdaApiGatewayPermission" {
-   statement_id  = "AllowLambdaAPIGatewayInvoke"
-   action        = "lambda:InvokeFunction"
-   function_name = aws_lambda_function.hello_world_lambda.function_name
-   principal     = "apigateway.amazonaws.com"
-   source_arn    = "${aws_api_gateway_rest_api.LambdaApiGateway.execution_arn}/*/*/*"
-}
+data "aws_caller_identity" "current" {}
 
 # output the url for testing
 output "gateway_url" {

@@ -379,6 +379,44 @@ resource "aws_api_gateway_deployment" "LambdaApiGatewayDeployment" {
 
 Epic! Lets apply it and see what we get!
 
+![image description](doc/assets/lambda_2.png)
+
+Not so epic! 
+
+### Lights are on but no ones home !
+
+After a little troubleshooting and using the aws console to test the gateway. It looks like the permissions in the lambda wasnt set correctly. After poking around a bit, I found that adding the account number id to the arn of the aws_api_gateway_rest_api in the lambdas permissions allowed it to work. Adding the following lines really helped to trouble shoot what was being used (and what wasnt)
+```terrafrom
+data "aws_caller_identity" "current" {}
+
+output "account_id" {
+  value = data.aws_caller_identity.current.account_id
+}
+
+output "aws_api_gateway_rest_api_arn" { 
+  value = aws_api_gateway_rest_api.LambdaApiGateway.execution_arn
+}
+
+output "aws_api_gateway_deployment_arn" { 
+  value = aws_api_gateway_deployment.LambdaApiGatewayDeployment.execution_arn
+}
+```
+Here, using `terraform plan` we can see the that the account id is missing between the 2 colons 
+
+![image description](doc/assets/lambda_3.png)
+
+I really want to understand why this is happening, but for now - building up the arn seems to work. As soon as I have more time I'm going to come back to this. 
+
+```terraform
+...
+source_arn = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.LambdaApiGateway.id}/*/*/*"
+```
+
+With this in place, another run and this time it works. 
+
+![image description](doc/assets/lambda_4.png)
+
+
 ## Refrences and helpful links have been
 
 * https://advancedweb.hu/how-to-define-lambda-code-with-terraform/
