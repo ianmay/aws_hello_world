@@ -4,11 +4,6 @@ variable "aws_region" {
  default     = "ap-southeast-2"
 }
 
-variable "monthly_budget_amount" {
- type        = string
- default     = "10"
-}
-
 # you can create objects too! 
 variable "hello_world_app" {
  type = object({
@@ -29,4 +24,18 @@ variable "hello_world_app" {
 variable "api_deployment_stage_name" {
  type        = string
  default     = "test"
+}
+
+# variables to hold our budget details
+variable "budget" {
+ type = object({
+    amount     = string
+    email      = list(string)
+    time_span  = string
+  })
+  default = {
+    amount     = "10"
+    email      = ["not@really.real"]
+    time_span  = "MONTHLY"
+  }
 }
