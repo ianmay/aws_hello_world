@@ -20,7 +20,13 @@ variable "hello_world_app" {
   default = {
     name       = "hello_world"
     local_path = "./hello_world/hello_world/app.py"
-    handler    = "main.lambda_handler"
+    handler    = "app.lambda_handler"
     runtime    = "python3.9"
   }
+}
+
+# stage name for our deployment (for api gateway)
+variable "api_deployment_stage_name" {
+ type        = string
+ default     = "test"
 }

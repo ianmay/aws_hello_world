@@ -290,17 +290,106 @@ variable "monthly_budget_amount" {
 ```
 
 ## API Gateway
-So far - all great, but it's not publicly accessible yet. Need to fix that. 
+So far - all great, but it's not publicly accessible yet. Need to fix that. Starting with creating a gateway api container to hold all other api objects. 
+```terraform
+resource "aws_api_gateway_rest_api" "LambdaApiGateway" {
+  name        = "LambdaApiGateway"
+}
+```
+Now we have that in place we need to add some resources to to handle all incoming requests. Between the {proxy+} under path_part and "ANY" for the http_method, we should catch all incoming requests. 
 
 ```terraform
+resource "aws_api_gateway_resource" "LambdaApiGatewayProxy" {
+   rest_api_id = aws_api_gateway_rest_api.LambdaApiGateway.id
+   parent_id   = aws_api_gateway_rest_api.LambdaApiGateway.root_resource_id
+   path_part   = "{proxy+}"
+}
+
+resource "aws_api_gateway_method" "LambdaApiGatewayProxyMethod" {
+   rest_api_id   = aws_api_gateway_rest_api.LambdaApiGateway.id
+   resource_id   = aws_api_gateway_resource.LambdaApiGatewayProxy.id
+   http_method   = "ANY"
+   authorization = "NONE"
+}
+```
+
+Well nearly - the proxy still wont match an empty path at the API's root. To fix that lets add another one for the root by changing the resource_id to look at the root_resource_id.
+
+```terraform
+resource "aws_api_gateway_method" "LambdaApiGatewayProxyMethodRoot" {
+   rest_api_id   = aws_api_gateway_rest_api.LambdaApiGateway.id
+   resource_id   = aws_api_gateway_rest_api.LambdaApiGateway.root_resource_id
+   http_method   = "ANY"
+   authorization = "NONE"
+}
+```
+
+Great - now we need to route the requests off to our lambda using an aws_api_gateway_integration. We need an integration for the apis root too.
+
+```terraform
+resource "aws_api_gateway_integration" "LambdaApiGatewayIntegration" {
+   rest_api_id             = aws_api_gateway_rest_api.LambdaApiGateway.id
+   resource_id             = aws_api_gateway_method.LambdaApiGatewayProxyMethod.resource_id
+   http_method             = aws_api_gateway_method.LambdaApiGatewayProxyMethod.http_method
+   integration_http_method = "POST"
+   type                    = "AWS_PROXY"
+   uri                     = aws_lambda_function.hello_world_lambda.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "LambdaApiGatewayIntegrationRoot" {
+   rest_api_id             = aws_api_gateway_rest_api.LambdaApiGateway.id
+   resource_id             = aws_api_gateway_method.LambdaApiGatewayProxyMethodRoot.resource_id
+   http_method             = aws_api_gateway_method.LambdaApiGatewayProxyMethodRoot.http_method
+   integration_http_method = "POST"
+   type                    = "AWS_PROXY"
+   uri                     = aws_lambda_function.hello_world_lambda.invoke_arn
+}
+```
+The Lambda isnt going to let the api invoke it by default though! Lets fix that by adding in the relavent permissions
+
+```terraform
+resource "aws_lambda_permission" "LambdaApiGatewayPermission" {
+   statement_id  = "AllowLambdaAPIGatewayInvoke"
+   action        = "lambda:InvokeFunction"
+   function_name = aws_lambda_function.hello_world_lambda.function_name
+   principal     = "apigateway.amazonaws.com"
+   source_arn    = "${aws_api_gateway_rest_api.LambdaApiGateway.execution_arn}/*/*/*"
+}
+```
+
+Last thing is to set up a deployment using stages to expose the API and config at a URL for testing. Lets be boring and call the stage "test". For a little flare, we will however add it into our `variables.tf` file so life isnt too bad.
+
+```terraform
+# in variables.tf
+variable "api_deployment_stage_name" {
+ type        = string
+ default     = "test"
+}
+
+# back in main.tf
+resource "aws_api_gateway_deployment" "LambdaApiGatewayDeployment" {
+   depends_on = [
+     aws_api_gateway_integration.LambdaApiGatewayIntegration,
+     aws_api_gateway_integration.LambdaApiGatewayIntegrationRoot,
+   ]
+   rest_api_id = aws_api_gateway_rest_api.LambdaApiGateway.id
+   stage_name  = var.api_deployment_stage_name
+}
+```
+
+Epic! Lets apply it and see what we get!
 
 ## Refrences and helpful links have been
 
 * https://advancedweb.hu/how-to-define-lambda-code-with-terraform/
 * https://hevodata.com/learn/terraform-lambda/
 * https://registry.terraform.io/modules/mineiros-io/lambda-function/aws/latest/examples/python-function
-* https://developer.hashicorp.com/terraform/language/values/variables
+
+* https://registry.terraform.io/providers/hashicorp/aws/2.34.0/docs/guides/serverless-with-aws-lambda-and-api-gateway
 * https://www.middlewareinventory.com/blog/aws-lambda-terraform/
+
+
+* https://developer.hashicorp.com/terraform/language/values/variables
 * https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html
 
 * https://www.maxivanov.io/deploy-aws-lambda-to-vpc-with-terraform/
