@@ -1,6 +1,6 @@
 # aws_hello_world
 
-This is a small aws hello world example using terraform
+This is a small AWS hello world example using terraform
 
 
 # The Journey! 
@@ -27,7 +27,7 @@ Using infrastructure as code, set up a hello world web server in AWS/Azure, and 
 
 ## Getting Started ~ Setup
 
-Time to get set up and install all the relevant tools I will need to complete the work. I'm using a windows based machineand am a fan of Chocolatey so that's  what I'll use to install the tools. A list of links to the websites is also included below in case you prefer to get the installers directly from there. 
+Time to get set up and install all the relevant tools I will need to complete the work. I'm using a windows based machine and am a fan of Chocolatey so that's what I'll use to install the tools. A list of links to the websites is also included below in case you prefer to get the installers directly from there. 
 
 ### from powershell :
 ```PowerShell
@@ -42,10 +42,10 @@ choco install python3
 choco install awssamcli
 choco install docker
 
-# Post install let's refresh session environment (allows any new changes to path, etc from the installs to be picked up inside this powershell session)
+# Post install let's refresh the session environment (allows any new changes to path, etc from the installs to be picked up inside this PowerShell session)
 refreshenv
 
-# Post install let's check the versions (mostly to make sure we can execute the tools before we start)
+# Post-install let's check the versions (mostly to make sure we can execute the tools before we start)
 aws.exe --version
 terraform --version
 python.exe --version
@@ -54,7 +54,7 @@ docker --version
 
 ```
 ### via msi's:
-Tools can be downloaded and installed from msi's directly from the manufactures website 
+Tools can be downloaded and installed from MSI's directly from the manufactures website 
 * AwsCli : https://aws.amazon.com/cli/
 * Terraform : https://developer.hashicorp.com/terraform/downloads
 * Python : https://www.python.org/downloads/
@@ -88,13 +88,13 @@ cd .\aws_hello_world\
 Many of my friends have been telling me how cool serverless functions are. And so its been one of the things I really wanted to try out for a while.  
 
 ### Bootstraping a simple python hello world function with AWS Serverless Application Model
-The "AWS Serverless Application Model" or SAM is pretty neat. It can be used to provide boiler plate code examples, and better, allow you to test them locally before pushing it up into aws. 
+The "AWS Serverless Application Model" or SAM is pretty neat. It can be used to provide boilerplate code examples, and better, allow you to test them locally before pushing it up into AWS. 
 
-To set up a boiler plate python app you just need to run `sam init`
+To set up a boilerplate python app you just need to run `sam init`
 
 ![image description](doc/assets/sam-init.png)
 
-I did run into a problem where it failed cloning at first. Turned out that as I was on Windows I needed to set `LongPathsEnabled` in the registry for windows first. You can check it via regedit under `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem` or in powershell, example below. After that re-running sam init worked fine.
+I did run into a problem where it failed cloning at first. Turned out that as I was on Windows I needed to set `LongPathsEnabled` in the registry for windows first. You can check it via regedit under `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem` or in PowerShell, example below. After that re-running sam init worked fine.
 
 ```Powershell
 # check LongPathsEnabled (should be 1 for enabled)
@@ -103,7 +103,7 @@ Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name
 # you can set it if needed
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1
 ```
-After this, I had a boilerplate py app that we can run up locally. You just need to drop into the new `hello_world` folder and run SAM with start-api. After that you can test it quickly in a browser by going to `http://127.0.0.1:3000/hello`
+After this, I had a boilerplate py app that we can run up locally. You just need to drop into the new `hello_world` folder and run SAM with start-api. After that, you can test it quickly in a browser by going to `http://127.0.0.1:3000/hello`
 
 ```Powershell
 cd .\hello_world\ 
@@ -128,11 +128,11 @@ Another cool thing was you can edit the code with SAM running and then just refr
 
 ![image description](doc/assets/hello_world_2.png)
 
-If we were writing something more complicated I think that's pretty cool that we can use sam to make sure its going to work first before spending time and cost on a deployment to aws!
+If we were writing something more complicated I think that's pretty cool that we can use sam to make sure it's going to work first before spending time and cost on a deployment to AWS!
 
 ### Terraform Mars!
 
-Now we have something simple, I really wanted to try out creating a lambda in AWS. The first thing I did was create a new tf file. Back in the root folder I created a `main.tf`. 
+Now we have something simple, I wanted to try out creating a lambda in AWS. The first thing I did was create a new tf file. Back in the root folder, I created a `main.tf`. 
 
 Next is to let terraform know we want to work with AWS and so we add in the provider. We can also specify a version we want to enforce for Terraform. Let's do that : 
 
@@ -149,7 +149,7 @@ terraform {
   }
 }
 ```
-On to configuring our provider (AWS). The main thing will be to tell AWS which region to use. For this example, I went with `ap-southeast-2` which is Sydney. There's a few other settings that speed up the calls from Terraform too, so let's include those. 
+On to configuring our provider (AWS). The main thing will be to tell AWS which region to use. For this example, I went with `ap-southeast-2` which is Sydney. There are a few other settings that speed up the calls from Terraform too, so let's include those. 
 
 ```terraform
 provider "aws" {
@@ -163,7 +163,7 @@ provider "aws" {
 }
 ```
 
-Our Lambda will need some roles and permissions. I've seen a few different ways of doing this, mostly just feeding JSON from a string into the IAM role. However, Terraform has an `aws_iam_policy_document` data source which can be defined. I liked the readability of this approach.
+Our Lambda will need some roles and permissions. I've seen a few different ways of doing this, mainly just feeding JSON from a string into the IAM role. However, Terraform has an `aws_iam_policy_document` data source which can be defined. I liked the readability of this approach.
 
 ```terraform
 # create a policy to be used by the role for our lambda
@@ -202,7 +202,7 @@ resource "aws_lambda_function" "hello_world_lambda" {
   handler          = "main.lambda_handler"
   filename         = "${data.archive_file.hello_world_lambda_archive.output_path}"
   source_code_hash = "${data.archive_file.hello_world_lambda_archive.output_base64sha256}"
-  role      	     = "${aws_iam_role.hello_world_lambda_role.arn}"
+  role               = "${aws_iam_role.hello_world_lambda_role.arn}"
 }
 ```
 
@@ -256,7 +256,7 @@ variable "hello_world_app" {
 }
  
 ```
-With these in place we can rework the `main.tf` and remove all the hard coded refrences. Heres the diff: 
+With these in place, we can rework the `main.tf` and remove all the hard coded references. Here's the diff: 
 
 ![image description](doc/assets/terrafrom_diff_1.png)
 
@@ -265,13 +265,13 @@ Again. Post changes, we run a `terraform plan` to ensure I haven't introduced an
 ![image description](doc/assets/lambda_1.png)
 
 #### API Gateway
-So far - all great, but it's not publicly accessible yet. Need to fix that. Starting with creating a gateway api container to hold all other api objects. 
+So far - all great, but it's not publicly accessible yet. Need to fix that. Starting with creating a gateway API container to hold all other API objects. 
 ```terraform
 resource "aws_api_gateway_rest_api" "LambdaApiGateway" {
   name        = "LambdaApiGateway"
 }
 ```
-Now we have that in place we need to add some resources to to handle all incoming requests. Between the {proxy+} under path_part and "ANY" for the http_method, we should catch all incoming requests. 
+Now we have that in place we need to add some resources to handle all incoming requests. Between the {proxy+} under path_part and "ANY" for the http_method, we should catch all incoming requests. 
 
 ```terraform
 resource "aws_api_gateway_resource" "LambdaApiGatewayProxy" {
@@ -288,7 +288,7 @@ resource "aws_api_gateway_method" "LambdaApiGatewayProxyMethod" {
 }
 ```
 
-Well nearly - the proxy still wont match an empty path at the API's root. To fix that lets add another one for the root by changing the resource_id to look at the root_resource_id.
+Well nearly - the proxy still won't match an empty path at the API's root. To fix that let's add another one for the root by changing the resource_id to look at the root_resource_id.
 
 ```terraform
 resource "aws_api_gateway_method" "LambdaApiGatewayProxyMethodRoot" {
@@ -299,7 +299,7 @@ resource "aws_api_gateway_method" "LambdaApiGatewayProxyMethodRoot" {
 }
 ```
 
-Great - now we need to route the requests off to our lambda using an aws_api_gateway_integration. We need an integration for the apis root too.
+Great - now we need to route the requests off to our lambda using an aws_api_gateway_integration. We need an integration for the APIs root too.
 
 ```terraform
 resource "aws_api_gateway_integration" "LambdaApiGatewayIntegration" {
@@ -320,7 +320,7 @@ resource "aws_api_gateway_integration" "LambdaApiGatewayIntegrationRoot" {
    uri                     = aws_lambda_function.hello_world_lambda.invoke_arn
 }
 ```
-The Lambda isnt going to let the api invoke it by default though! Lets fix that by adding in the relavent permissions
+The Lambda isn't going to let the API invoke it by default though! Let's fix that by adding the relavent permissions
 
 ```terraform
 resource "aws_lambda_permission" "LambdaApiGatewayPermission" {
@@ -332,7 +332,7 @@ resource "aws_lambda_permission" "LambdaApiGatewayPermission" {
 }
 ```
 
-Last thing is to set up a deployment using stages to expose the API and config at a URL for testing. Lets be boring and call the stage "test". For a little flare, we will however add it into our `variables.tf` file so life isnt too bad.
+The last thing is to set up a deployment using stages to expose the API and config at a URL for testing. Let's be boring and call the stage "test". For a little flare, we will however add it into our `variables.tf` file so life isn't too bad.
 
 ```terraform
 # in variables.tf
@@ -352,7 +352,7 @@ resource "aws_api_gateway_deployment" "LambdaApiGatewayDeployment" {
 }
 ```
 
-Epic! Lets apply it and see what we get!
+Epic! Let's apply it and see what we get!
 
 ![image description](doc/assets/lambda_2.png)
 
@@ -360,7 +360,7 @@ Not so epic!
 
 #### Lights are on but no ones home !
 
-After a little troubleshooting and using the aws console to test the gateway. It looks like the permissions in the lambda wasnt set correctly. After poking around a bit, I found that adding the account number id to the arn of the aws_api_gateway_rest_api in the lambdas permissions allowed it to work. Adding the following lines really helped to trouble shoot what was being used (and what wasnt)
+After a little troubleshooting and using the AWS console to test the gateway. It looks like the permissions in the lambda wasn't set correctly. After poking around a bit, I found that adding the account number id to the arn of the aws_api_gateway_rest_api in the lambdas permissions allowed it to work. Adding the following lines helped to troubleshoot what was being used (and what wasn't)
 ```terrafrom
 data "aws_caller_identity" "current" {}
 
@@ -376,25 +376,25 @@ output "aws_api_gateway_deployment_arn" {
   value = aws_api_gateway_deployment.LambdaApiGatewayDeployment.execution_arn
 }
 ```
-Here, using `terraform plan` we can see the that the account id is missing between the 2 colons 
+Here, using `terraform plan` we can see that the account id is missing between the 2 colons 
 
 ![image description](doc/assets/lambda_3.png)
 
-I really want to understand why this is happening, but for now - building up the arn seems to work.  
+I want to understand why this is happening, but for now - building up the arn seems to work.  
 
 ```terraform
 ...
 source_arn = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.LambdaApiGateway.id}/*/*/*"
 ```
 
-As soon as I have more time I'm going to come back to this. But for now, at least its working.
+As soon as I have more time I'm going to come back to this. But for now, at least it's working.
 
 ![image description](doc/assets/lambda_4.png)
 
-## Learning from Bargin Basement Budgets! 
+## Learning from Bargain Basement Budgets! 
 Before I get carried away. Let's set up a quick budget. After all, it's my card on the line :P 
 
-I've created the following file `budget.tf`. In here I'll define a budget and notification. 
+I've created the following file `budget.tf`. Here I'll define a budget and notification. 
 
 I created the following variables.
 
@@ -431,10 +431,10 @@ resource "aws_budgets_budget" "hello_world_budget" {
   }
 }
 ```
-With this in place, time for another suprise! The account_id problem reared its head again! From the error it looks like the account_id is less than 12 chars. Lol - I bet its empty as was the case for the LambdaApiGatewayDeployment arn
+With this in place, time for another surprise! The account_id problem reared its head again! From the error, it looks like the account_id is less than 12 chars. Lol - I bet its empty as was the case for the LambdaApiGatewayDeployment arn
 ![image description](doc/assets/budget_1.png)
 
-This was very helpful as now i know its something with my set up more globally rather than just that one bit. Going back to the begining when I declared the provider, I'd taken some code that I saw should speed up interacting with terraform - the culprit? skip_requesting_account_id is false! Doh!
+This was very helpful as now I know its something with my setup more globally rather than just that one bit. Going back to the beginning when I declared the provider, I'd taken some code that I saw should speed up interacting with terraform - the culprit? skip_requesting_account_id is false! Doh!
 
 A quick change to this let me use the LambdaApiGatewayDeployment arn again:
 
@@ -455,11 +455,11 @@ resource "aws_lambda_permission" "LambdaApiGatewayPermission" {
 I also now have a Budget! 
 
 ### Cleaning up
-Now the Lambda is working, I'd like to move it all into its own file and then move on to other approches for for hello world. To do this I moved the code after declairing the provider into a new file called `hello_world_lamdba.tf`. I choose not to split out the gateway (although that might be a valid approch). The idea here was I wanted, for my own sake to group together all the resources for a singluar objective into thier own files. So as the gateway is currently only serving the lambda, I'll keep them together. After this a quick terraform apply to make sure its all still working. 
+Now the Lambda is working, I'd like to move it all into its own file and then move on to other approaches for for hello world. To do this I moved the code after declairing the provider into a new file called `hello_world_lamdba.tf`. I choose not to split out the gateway (although that might be a valid approach). The idea here was I wanted, for my own sake to group together all the resources for a single objective into their own files. So as the gateway is currently only serving the lambda, I'll keep them together. After this, a quick terraform apply to make sure it's all still working. 
 
 
-### Refrences and helpful links have been
-standing on the shoulders of gaints, the following have been very helpful while working on creating the lambda:
+### References and helpful links have been
+standing on the shoulders of giants, the following have been very helpful while working on creating the lambda:
 * https://registry.terraform.io/providers/hashicorp/aws/2.34.0/docs/guides/serverless-with-aws-lambda-and-api-gateway
 * https://registry.terraform.io/modules/mineiros-io/lambda-function/aws/latest/examples/python-function
 * https://advancedweb.hu/how-to-define-lambda-code-with-terraform/
@@ -468,7 +468,13 @@ standing on the shoulders of gaints, the following have been very helpful while 
 * https://www.middlewareinventory.com/blog/aws-lambda-terraform/
 * https://levelup.gitconnected.com/deploy-lambda-function-and-api-gateway-using-terraform-d12cdc50dee8
 
-# other refrences that have been helpful
+## Step 2 ~ Bucket hosted Hello World
+
+
+* https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html
+
+
+# other references that have been helpful
 
 * https://developer.hashicorp.com/terraform/language/values/variables
 * https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html
