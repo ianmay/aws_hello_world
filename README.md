@@ -85,7 +85,7 @@ You can run the awscli tool to set up credentials allowing you to work with aws.
 # set up aws with account info
 aws configure
 
-# look ma! plain text credintials ! 
+# plain text credintials ! 
 cat ~\.aws\config
 cat ~\.aws\credentials 
 ```
@@ -99,7 +99,7 @@ cd .\aws_hello_world\
 ```
 
 ## Step 1 ~ Hello world lambda and api gateway
-Many of my friends have been telling me how cool serverless functions are. And so its been one of the things I really wanted to try out for a while.  
+Everyone had been telling me about serverless functions. Its been one of the things I really wanted to try out for a while.  
 
 ### Bootstraping a simple python hello world function with AWS Serverless Application Model
 The "AWS Serverless Application Model" or SAM is pretty neat. It can be used to provide boilerplate code examples, and better, allow you to test them locally before pushing it up into AWS. 
