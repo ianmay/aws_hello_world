@@ -5,7 +5,7 @@ variable "aws_region" {
 }
 
 # you can create objects too! 
-variable "hello_world_app" {
+variable "hello_world_lambda" {
  type = object({
     name       = string
     local_path = string

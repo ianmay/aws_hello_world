@@ -19,15 +19,15 @@ resource "aws_iam_role" "hello_world_lambda_role" {
 # create an archive of the hello world code to deploy
 data "archive_file" "hello_world_lambda_archive" {
   type        = "zip"
-  source_file = "${var.hello_world_app.local_path}"
-  output_path = "${var.hello_world_app.name}.zip"
+  source_file = "${var.hello_world_lambda.local_path}"
+  output_path = "${var.hello_world_lambda.name}.zip"
 }
 
 # create the lambda from the archive file
 resource "aws_lambda_function" "hello_world_lambda" {
-  function_name    = "${var.hello_world_app.name}"
-  runtime          = "${var.hello_world_app.runtime}"
-  handler          = "${var.hello_world_app.handler}"
+  function_name    = "${var.hello_world_lambda.name}"
+  runtime          = "${var.hello_world_lambda.runtime}"
+  handler          = "${var.hello_world_lambda.handler}"
   filename         = "${data.archive_file.hello_world_lambda_archive.output_path}"
   source_code_hash = "${data.archive_file.hello_world_lambda_archive.output_base64sha256}"
   role      	     = "${aws_iam_role.hello_world_lambda_role.arn}"
