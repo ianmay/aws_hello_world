@@ -25,6 +25,20 @@ Using infrastructure as code, set up a hello world web server in AWS/Azure, and 
 - The code must be stored in a source control tool of your choice and a link must be provided 
 ```
 
+This is my first time using both AWS and Terraform, so there will be lots of learning for me on the way. Heres what I'm hoping to create:
+
+* a serverless function (lambda) to return hello world via a gateway api
+* a s3 bucket hosting a static hello world page
+* a ec2 instance running linux serving a static hello world page
+
+to monitor it all: 
+* a powershell or bash script that can be used to adhoc check the sites are up
+* use site24x7 to monitor that the sites are up
+
+I would like to create something like prometheus , cloudwatch or simular to monitor but I dont think time will allow. 
+
+I'd also really like to extend this too for personal learning later on. I thought it would be cool if the lambda could grab a live image of the earth or mars, save this to a bucket and the EC2 would serve a static page referencing the image. This way there's an API to hit to update a picture for our hello world app. 
+
 ## Getting Started ~ Setup
 
 Time to get set up and install all the relevant tools I will need to complete the work. I'm using a windows based machine and am a fan of Chocolatey so that's what I'll use to install the tools. A list of links to the websites is also included below in case you prefer to get the installers directly from there. 
