@@ -483,9 +483,81 @@ standing on the shoulders of giants, the following have been very helpful while 
 * https://levelup.gitconnected.com/deploy-lambda-function-and-api-gateway-using-terraform-d12cdc50dee8
 
 ## Step 2 ~ Bucket hosted Hello World
+In contrast, this next task was much easier. Amazon allows you to host a static website in S3 so why not!
+I created a static page by outputting the following:
+`echo '<!doctype html> <html> <body> <h1>hello mars</h1> </body> </html>' >  .\hello_world_static\index.html`
+
+Then I set up another object in `variables.tf`
+
+```terraform
+variable "hello_world_bucket" {
+ type = object({
+    path       = string
+    domain     = string
+  })
+  default = {
+    path       = "./hello_world_static/index.html"
+    domain     = "ianmay-aws-hello-world"
+  }
+}
+```
+
+And finally, in a new file called `hello_world_bucket.tf` I added the following. 
+
+```terraform
+# set up a bucket to hold our static webpage
+resource "aws_s3_bucket" "hello_world_bucket" {
+  bucket = var.hello_world_bucket.domain
+  acl = "public-read"
+}
+
+# upload the static webpage to the bucket
+# we can also set the content_type here so that the page will load in a browser. 
+resource "aws_s3_bucket_object" "hello_world_bucket_file" {
+  bucket = aws_s3_bucket.hello_world_bucket.id
+  key    = "index.html"
+  source = var.hello_world_bucket.path
+  content_type = "text/html"
+  etag = filemd5(var.hello_world_bucket.path)
+}
+
+# allow S3 to host a static website
+resource "aws_s3_bucket_website_configuration" "hello_world_bucket_configuration" {
+  bucket = aws_s3_bucket.hello_world_bucket.id
+  index_document {
+    suffix = "index.html"
+  }
+  error_document {
+    key = "index.html"
+  }
+}
+
+# return the url for our bucket
+output "hello_world_bucket_url" {
+  value = aws_s3_bucket.hello_world_bucket.website_endpoint
+}
+``` 
+
+There's not too much to talk about here, but some key points are 
+* `etag = filemd5()` : is used to let terraform know to update the bucket when index.html changes
+* `content_type` : is used to allow the page to be viewed in a browser rather than ask you to download it
+* `aws_s3_bucket_website_configuration` : is used to host the static page
+* `domain` : just to prepend a label on the url
+and the result:
+![image description](doc/assets/bucket_1.png)
+
+### References and helpful links have been
+ * https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html
+* https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_website_configuration
+* https://awstip.com/how-to-setup-static-web-hosting-using-s3-and-cloudfront-through-terraform-392a6e1dd29d
+* https://www.tangramvision.com/blog/abusing-terraform-to-upload-static-websites-to-s3
+
+## Step 3 ~ EC2 hosted Hello World
 
 
-* https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html
+
+
+
 
 
 # other references that have been helpful

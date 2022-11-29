@@ -14,9 +14,20 @@ variable "hello_world_lambda" {
   })
   default = {
     name       = "hello_world"
-    local_path = "./hello_world/hello_world/app.py"
+    local_path = "./hello_world_lambda/hello_world/app.py"
     handler    = "app.lambda_handler"
     runtime    = "python3.9"
+  }
+}
+
+variable "hello_world_bucket" {
+ type = object({
+    path       = string
+    domain     = string
+  })
+  default = {
+    path       = "./hello_world_static/index.html"
+    domain     = "ianmay-aws-hello-world"
   }
 }
 
