@@ -747,6 +747,10 @@ Now we have site24x7 set up to watch the lambda, bucket and ic2 instance!
 * https://www.site24x7.com/help/api/#authentication
 * https://github.com/site24x7/terraform-provider-site24x7
 
+and if we turn something off ? 
+
+![image description](doc/assets/site24x7_2.png)
+
 ## Whats Next (If i had more time)
 * scripting something to quickly store oAuth creds in environment variables would have been nice and do-able
 * using a tfvars file and or environment variables
