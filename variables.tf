@@ -51,14 +51,24 @@ variable "budget" {
   }
 }
 
+# variables to hold our site 24x7 monitoring details
 variable "monitoring"{ 
  type = object({
     check_frequency        = string
     location_profile_name  = string
+    oauth2_client_id       = string
+    oauth2_client_secret   = string
+    oauth2_refresh_token   = string
+    oauth2_access_token    = string
+
   })
   default = {
-    check_frequency        = "50"
+    check_frequency        = "5"
     location_profile_name  = "North America"
+    oauth2_client_id       = "1000.FILLMEIN"
+    oauth2_client_secret   = "FILLMEIN"
+    oauth2_refresh_token   = "1000.FILLMEIN.FILLMEIN"
+    oauth2_access_token    = "1000.FILLMEIN.FILLMEIN"
     
   }
 }

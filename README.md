@@ -616,9 +616,142 @@ output "hello_world_instance_url" {
 * todo - see if I can capture terrform output and then (curl / invoke-webrequest / invoke-restmethod)
 * todo - look into site24/7
 
+## Monitoring with Site 24x7
+To make sure we are monitoring the sites (lambda, bucket, and EC2 instance) externally, I went with setting up simple website monitors in site24x7. Terraform has a provider for this which was nice to see! 
 
-## other things
-* todo - add tags and descriptions for terraform to make identifying resources easier in AWS. 
+The biggest challenge, it turned out, was setting up oAuth2 to let terraform and site24x7 talk to each other. I used a Zoho account (https://api-console.zoho.com if you want to try). In Zoho I set up a simple "Self Client". Copied the `Client Secret` and `Client Id` and then generated a code with a scope of `Site24x7.account.All,Site24x7.admin.All,Site24x7.reports.All,Site24x7.operations.All,Site24x7.msp.All,Site24x7.bu.All`. Then set a time duration of 10 minutes. 
+
+Then we request the refresh and access tokens for the terraform provider using curl or postman
+
+```bash
+curl.exe https://accounts.zoho.com/oauth/v2/token -X POST -d "client_id=1000.XXXXX" -d "client_secret=XXXXX" -d "code=1000.XXXXX.XXXXXX" -d "grant_type=authorization_code" --insecure
+```
+
+this returns the following message
+```
+{"access_token":"1000.XXXXX.XXXXX","refresh_token":"1000.XXXXX.XXXXX","api_domain":"https://www.zohoapis.com","token_type":"Bearer","expires_in":3600}
+```
+
+So let's add to our `variables.tf` file
+```terraform
+# variables to hold our site 24x7 monitoring details
+variable "monitoring"{ 
+ type = object({
+    check_frequency        = string
+    location_profile_name  = string
+    oauth2_client_id       = string
+    oauth2_client_secret   = string
+    oauth2_refresh_token   = string
+    oauth2_access_token    = string
+
+  })
+  default = {
+    check_frequency        = "5"
+    location_profile_name  = "North America"
+    oauth2_client_id       = "1000.XXXXX"
+    oauth2_client_secret   = "XXXXX"
+    oauth2_refresh_token   = "1000.XXXXX.XXXXX"
+    oauth2_access_token    = "1000.XXXXX.XXXXX"
+    
+  }
+}
+```
+
+and then for the setting up site24x7 I created a new file called `monitoring.tf`
+```terraform
+provider "site24x7" {
+  oauth2_client_id      = var. monitoring.oauth2_client_id
+  oauth2_client_secret  = var.monitoring.oauth2_client_secret
+  oauth2_refresh_token  = var.monitoring.oauth2_refresh_token
+  oauth2_access_token   = var.monitoring.oauth2_access_token
+  data_center = "US"
+  retry_min_wait = 1
+  retry_max_wait = 30
+  max_retries = 4
+}
+
+resource "site24x7_threshold_profile" "website_threshold_profile_us" {
+  profile_name = "URL Threshold Profile - Terraform"
+  type = "URL"
+
+  website_content_changes {
+    severity     = 3
+    value = 95
+  }
+
+  primary_response_time_critical_threshold = {
+    severity = 3
+    comparison_operator = 1
+    value               = 2000
+    strategy            = 2
+    polls_check         = 5
+  }
+
+  secondary_response_time_trouble_threshold = {
+    severity = 2
+    comparison_operator = 1
+    value               = 3000
+    strategy            = 2
+    polls_check         = 5
+  }
+
+  secondary_response_time_critical_threshold = {
+    severity = 3
+    comparison_operator = 1
+    value               = 4000
+    strategy            = 2
+    polls_check         = 5
+  }
+}
+
+resource "site24x7_website_monitor" "hello_world_lambda" {
+  depends_on = [
+     aws_api_gateway_deployment.LambdaApiGatewayDeployment,
+     site24x7_threshold_profile.website_threshold_profile_us
+  ]
+  display_name = "hello_world_lambda"
+  website = aws_api_gateway_deployment.LambdaApiGatewayDeployment.invoke_url
+  check_frequency = var.monitoring.check_frequency
+  location_profile_name = "North America"
+}
+
+resource "site24x7_website_monitor" "hello_world_bucket" {
+  depends_on = [
+     aws_s3_bucket.hello_world_bucket,
+     site24x7_threshold_profile.website_threshold_profile_us
+  ]  
+  display_name = "hello_world_bucket"
+  website = "http://${aws_s3_bucket.hello_world_bucket.website_endpoint}"
+  check_frequency = var.monitoring.check_frequency
+  location_profile_name = "North America"
+}
+
+resource "site24x7_website_monitor" "hello_world_ec2" {
+  depends_on = [
+     aws_s3_bucket.hello_world_bucket,
+     aws_instance.hello_world_ec2_instance
+  ]   
+  display_name = "hello_world_ec2"
+  website = "http://${aws_instance.hello_world_ec2_instance.public_dns}"
+  check_frequency = var.monitoring.check_frequency
+  location_profile_name = var.monitoring.location_profile_name
+}
+```
+terraform plan ; terraform apply and voila! 
+
+![image description](doc/assets/site24x7_1.png)
+
+Now we have site24x7 set up to watch the lambda, bucket and ic2 instance!
+
+* https://www.site24x7.com/help/api/#authentication
+* https://www.site24x7.com/help/api/#authentication
+* https://github.com/site24x7/terraform-provider-site24x7
+
+## Whats Next (If i had more time)
+* scripting something to quickly store oAuth creds in environment variables would have been nice and do-able
+* using a tfvars file and or environment variables
+
+
 
 # other references that have been helpful
 
