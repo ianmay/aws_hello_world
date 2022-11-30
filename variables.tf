@@ -50,3 +50,15 @@ variable "budget" {
     time_span  = "MONTHLY"
   }
 }
+
+variable "monitoring"{ 
+ type = object({
+    check_frequency        = string
+    location_profile_name  = string
+  })
+  default = {
+    check_frequency        = "50"
+    location_profile_name  = "North America"
+    
+  }
+}

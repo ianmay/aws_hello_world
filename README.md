@@ -627,3 +627,5 @@ output "hello_world_instance_url" {
 
 
 * https://www.site24x7.com
+* https://www.site24x7.com/help/admin/developer/terraform.html
+* https://registry.terraform.io/providers/site24x7/site24x7/latest/docs
