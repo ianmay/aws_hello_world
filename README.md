@@ -2,6 +2,13 @@
 
 This is a small AWS hello world example using terraform
 
+## quick start 
+you will need to 
+* create an AWS account
+* create a Site24x7 account
+...
+
+
 
 # The Journey! 
 ```
@@ -743,17 +750,28 @@ terraform plan ; terraform apply and voila!
 
 Now we have site24x7 set up to watch the lambda, bucket and ic2 instance!
 
-* https://www.site24x7.com/help/api/#authentication
-* https://www.site24x7.com/help/api/#authentication
-* https://github.com/site24x7/terraform-provider-site24x7
-
 and if we turn something off ? 
 
 ![image description](doc/assets/site24x7_2.png)
 
+
+### References and helpful links have been
+* https://www.site24x7.com/help/api/#authentication
+* https://www.site24x7.com/help/api/#authentication
+* https://github.com/site24x7/terraform-provider-site24x7
+
+
 ## Whats Next (If i had more time)
-* scripting something to quickly store oAuth creds in environment variables would have been nice and do-able
-* using a tfvars file and or environment variables
+* TODO : more documentation. Especially around setup and how to run the code. 
+* TODO : scripting something to quickly store oAuth creds in environment variables would have been nice and do-able
+* TODO : using a tfvars file and or environment variables
+* TODO : script to check services are up post apply
+* TODO : a build and package script would have been nice.
+* TODO : looking into terraform modules
+
+* TODO : make the lambda get a live image of mars
+* TODO : make the lambda store the image in a bucket
+* TODO : have the EC2 Instance serve a "hello mars" page using the image in the bucket
 
 
 
